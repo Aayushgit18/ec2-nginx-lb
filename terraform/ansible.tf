@@ -14,7 +14,7 @@ resource "null_resource" "ansible_provision" {
   }
 
   # --------------------------------------------------
-  # Fix SSH host key checking
+  # Fix SSH host key checking (non-interactive)
   # --------------------------------------------------
   provisioner "remote-exec" {
     inline = [
@@ -40,7 +40,7 @@ resource "null_resource" "ansible_provision" {
   }
 
   # --------------------------------------------------
-  # Install Ansible
+  # Install Ansible (Ubuntu fix)
   # --------------------------------------------------
   provisioner "remote-exec" {
     inline = [
@@ -52,11 +52,19 @@ resource "null_resource" "ansible_provision" {
   }
 
   # --------------------------------------------------
-  # Copy Ansible files
+  # Copy Ansible files to control node
   # --------------------------------------------------
   provisioner "file" {
     source      = "../ansible"
     destination = "/home/ubuntu/ansible"
+  }
+
+  # --------------------------------------------------
+  # Copy Node app source to control node
+  # --------------------------------------------------
+  provisioner "file" {
+    source      = "../app"
+    destination = "/home/ubuntu/app"
   }
 
   # --------------------------------------------------
@@ -80,4 +88,3 @@ resource "null_resource" "ansible_provision" {
     ]
   }
 }
-
