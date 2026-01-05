@@ -1,25 +1,47 @@
 ---
+############################
+# PLAY 1: App Servers
+############################
 - name: Setup Node app
   hosts: apps
   become: yes
+
+  vars:
+    app_port: 3000
 
   tasks:
     - name: Install Node.js
       shell: |
         curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-        apt install -y nodejs
+        apt-get install -y nodejs
+      args:
+        creates: /usr/bin/node
 
     - name: Copy app
       copy:
         src: ../app/app.js
         dest: /home/ubuntu/app.js
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+
+    - name: Stop existing app if running
+      shell: |
+        pkill -f "node /home/ubuntu/app.js" || true
 
     - name: Start app
       shell: |
-        NODE_NUMBER={{ inventory_hostname[-1] }} \
-        APP_VERSION={{ inventory_hostname[-1] }}.0 \
-        nohup node /home/ubuntu/app.js &
+        NODE_NAME={{ inventory_hostname }} \
+        APP_VERSION={{ inventory_hostname | regex_replace('app','') }}.0 \
+        PORT={{ app_port }} \
+        nohup node /home/ubuntu/app.js > /var/log/app.log 2>&1 &
+      args:
+        executable: /bin/bash
 
+
+############################
+# PLAY 2: Nginx Load Balancer
+############################
 - name: Setup nginx LB
   hosts: nginx
   become: yes
@@ -34,22 +56,26 @@
     - name: Configure nginx
       copy:
         dest: /etc/nginx/sites-available/default
+        mode: "0644"
         content: |
           upstream backend {
-            server {{ hostvars['app1'].ansible_host }}:3000;
-            server {{ hostvars['app2'].ansible_host }}:3000;
-            server {{ hostvars['app3'].ansible_host }}:3000;
+              server {{ hostvars['app1'].ansible_host }}:3000;
+              server {{ hostvars['app2'].ansible_host }}:3000;
+              server {{ hostvars['app3'].ansible_host }}:3000;
           }
 
           server {
-            listen 80;
-            location / {
-              proxy_pass http://backend;
-            }
+              listen 80;
+
+              location / {
+                  proxy_pass http://backend;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              }
           }
 
     - name: Restart nginx
       service:
         name: nginx
         state: restarted
-
