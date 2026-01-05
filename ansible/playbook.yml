@@ -17,7 +17,7 @@
         state: present
         update_cache: yes
 
-    - name: Install Node.js 18 (NodeSource)
+    - name: Install Node.js 18
       shell: |
         curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
         apt-get install -y nodejs
@@ -34,13 +34,13 @@
 
     - name: Copy Node.js app
       copy:
-        src: ../app/app.js
+        src: /home/ubuntu/app/app.js
         dest: "{{ app_dir }}/app.js"
         owner: ubuntu
         group: ubuntu
         mode: "0755"
 
-    - name: Install Node app dependencies
+    - name: Install Node dependencies
       shell: |
         cd {{ app_dir }}
         npm init -y
@@ -48,24 +48,22 @@
       args:
         creates: "{{ app_dir }}/node_modules"
 
-    - name: Stop ALL existing Node processes
-      shell: |
-        pkill -9 node || true
+    - name: Stop existing Node processes
+      shell: pkill -9 node || true
       changed_when: false
       failed_when: false
 
     - name: Start Node app
       shell: |
         export PORT={{ app_port }}
-        export NODE_NUMBER={{ node_number | default('01') }}
-        export APP_VERSION={{ app_version | default('1.0') }}
+        export NODE_NUMBER={{ node_number }}
+        export APP_VERSION={{ app_version }}
         nohup node {{ app_dir }}/app.js > /var/log/app.log 2>&1 &
       args:
         executable: /bin/bash
 
 
-
-- name: Setup nginx LB
+- name: Setup nginx load balancer
   hosts: nginx
   become: yes
 
@@ -83,9 +81,9 @@
         mode: "0644"
         content: |
           upstream backend {
-              server {{ hostvars['app1'].ansible_host }}:3000;
-              server {{ hostvars['app2'].ansible_host }}:3000;
-              server {{ hostvars['app3'].ansible_host }}:3000;
+          {% for host in groups['apps'] %}
+              server {{ hostvars[host].ansible_host }}:3000;
+          {% endfor %}
           }
 
           server {
