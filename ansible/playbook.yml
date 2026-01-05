@@ -1,0 +1,55 @@
+---
+- name: Setup Node app
+  hosts: apps
+  become: yes
+
+  tasks:
+    - name: Install Node.js
+      shell: |
+        curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+        apt install -y nodejs
+
+    - name: Copy app
+      copy:
+        src: ../app/app.js
+        dest: /home/ubuntu/app.js
+
+    - name: Start app
+      shell: |
+        NODE_NUMBER={{ inventory_hostname[-1] }} \
+        APP_VERSION={{ inventory_hostname[-1] }}.0 \
+        nohup node /home/ubuntu/app.js &
+
+- name: Setup nginx LB
+  hosts: nginx
+  become: yes
+
+  tasks:
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Configure nginx
+      copy:
+        dest: /etc/nginx/sites-available/default
+        content: |
+          upstream backend {
+            server {{ hostvars['app1'].ansible_host }}:3000;
+            server {{ hostvars['app2'].ansible_host }}:3000;
+            server {{ hostvars['app3'].ansible_host }}:3000;
+          }
+
+          server {
+            listen 80;
+            location / {
+              proxy_pass http://backend;
+            }
+          }
+
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
+
