@@ -5,4 +5,3 @@ app${i + 1} ansible_host=${ip} ansible_user=ubuntu ansible_ssh_private_key_file=
 
 [nginx]
 nginx1 ansible_host=${nginx_ip} ansible_user=ubuntu ansible_ssh_private_key_file=/home/ubuntu/.ssh/ec2-key.pem
-
