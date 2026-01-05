@@ -5,16 +5,19 @@ resource "null_resource" "ansible_provision" {
     aws_instance.nginx
   ]
 
+  # --------------------------------------------------
+  # SSH connection to NGINX (Ansible control node)
+  # --------------------------------------------------
   connection {
     type        = "ssh"
     user        = "ubuntu"
-    private_key = file(var.private_key_path)
+    private_key = file("${path.module}/ec2-key.pem")
     host        = aws_instance.nginx.public_ip
     timeout     = "5m"
   }
 
   # --------------------------------------------------
-  # Fix SSH host key checking (non-interactive)
+  # Disable SSH host key checking (non-interactive)
   # --------------------------------------------------
   provisioner "remote-exec" {
     inline = [
@@ -29,7 +32,7 @@ resource "null_resource" "ansible_provision" {
   # Copy EC2 private key to nginx (Ansible control node)
   # --------------------------------------------------
   provisioner "file" {
-    source      = var.private_key_path
+    source      = "${path.module}/ec2-key.pem"
     destination = "/home/ubuntu/.ssh/ec2-key.pem"
   }
 
@@ -40,7 +43,7 @@ resource "null_resource" "ansible_provision" {
   }
 
   # --------------------------------------------------
-  # Install Ansible (Ubuntu fix)
+  # Install Ansible
   # --------------------------------------------------
   provisioner "remote-exec" {
     inline = [
