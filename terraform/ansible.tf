@@ -24,9 +24,9 @@ resource "null_resource" "ansible_provision" {
     ]
   }
 
-  # Copy EC2 private key to nginx (Ansible control node)
+  # Copy EC2 private key to NGINX (Ansible control node)
   provisioner "file" {
-    source      = "${path.module}/ec2-key.pem"
+    source      = var.private_key_path
     destination = "/home/ubuntu/.ssh/ec2-key.pem"
   }
 
@@ -67,7 +67,7 @@ resource "null_resource" "ansible_provision" {
     destination = "/home/ubuntu/ansible/inventory.ini"
   }
 
-  # Run Ansible
+  # Run Ansible playbook
   provisioner "remote-exec" {
     inline = [
       "cd /home/ubuntu/ansible",
