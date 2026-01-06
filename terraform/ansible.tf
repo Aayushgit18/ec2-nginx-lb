@@ -9,7 +9,7 @@ resource "null_resource" "ansible_provision" {
   connection {
     type        = "ssh"
     user        = "ubuntu"
-    private_key = file("${path.module}/ec2-key.pem")
+    private_key = file(var.private_key_path)
     host        = aws_instance.nginx.public_ip
     timeout     = "5m"
   }
