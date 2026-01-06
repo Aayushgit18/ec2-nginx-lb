@@ -5,9 +5,7 @@ resource "null_resource" "ansible_provision" {
     aws_instance.nginx
   ]
 
-  # --------------------------------------------------
   # SSH connection to NGINX (Ansible control node)
-  # --------------------------------------------------
   connection {
     type        = "ssh"
     user        = "ubuntu"
@@ -16,9 +14,7 @@ resource "null_resource" "ansible_provision" {
     timeout     = "5m"
   }
 
-  # --------------------------------------------------
   # Disable SSH host key checking (non-interactive)
-  # --------------------------------------------------
   provisioner "remote-exec" {
     inline = [
       "mkdir -p /home/ubuntu/.ssh",
@@ -28,9 +24,7 @@ resource "null_resource" "ansible_provision" {
     ]
   }
 
-  # --------------------------------------------------
   # Copy EC2 private key to nginx (Ansible control node)
-  # --------------------------------------------------
   provisioner "file" {
     source      = "${path.module}/ec2-key.pem"
     destination = "/home/ubuntu/.ssh/ec2-key.pem"
@@ -42,9 +36,7 @@ resource "null_resource" "ansible_provision" {
     ]
   }
 
-  # --------------------------------------------------
   # Install Ansible
-  # --------------------------------------------------
   provisioner "remote-exec" {
     inline = [
       "sudo apt update -y",
@@ -54,25 +46,19 @@ resource "null_resource" "ansible_provision" {
     ]
   }
 
-  # --------------------------------------------------
   # Copy Ansible files to control node
-  # --------------------------------------------------
   provisioner "file" {
     source      = "../ansible"
     destination = "/home/ubuntu/ansible"
   }
 
-  # --------------------------------------------------
   # Copy Node app source to control node
-  # --------------------------------------------------
   provisioner "file" {
     source      = "../app"
     destination = "/home/ubuntu/app"
   }
 
-  # --------------------------------------------------
   # Generate inventory dynamically
-  # --------------------------------------------------
   provisioner "file" {
     content = templatefile("../ansible/inventory.tpl", {
       app_ips  = aws_instance.app[*].public_ip
@@ -81,9 +67,7 @@ resource "null_resource" "ansible_provision" {
     destination = "/home/ubuntu/ansible/inventory.ini"
   }
 
-  # --------------------------------------------------
   # Run Ansible
-  # --------------------------------------------------
   provisioner "remote-exec" {
     inline = [
       "cd /home/ubuntu/ansible",
